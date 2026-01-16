@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinWise Investor Profiler</title>
+    <style>
+        :root {
+            --primary: #764ba2;
+            --secondary: #667eea;
+            --accent: #ff6b6b;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            display: flex; flex-direction: column; align-items: center; padding: 40px;
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        
+        /* THE WHEEL STYLING */
+        .wheel-container { position: relative; width: 400px; height: 400px; margin-bottom: 30px; }
+        #wheel {
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 8px solid #333; position: relative; overflow: hidden;
+            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+            background: conic-gradient(
+                #ffadad 0deg 40deg, #ffd6a5 40deg 80deg, #fdffb6 80deg 120deg,
+                #caffbf 120deg 160deg, #9bf6ff 160deg 200deg, #a0c4ff 200deg 240deg,
+                #bdb2ff 240deg 280deg, #ffc6ff 280deg 320deg, #fffffc 320deg 360deg
+            );
+        }
+        .pointer {
+            position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 20px solid transparent;
+            border-right: 20px solid transparent; border-top: 40px solid #333; z-index: 10;
+        }
+
+        /* RESULTS CARD */
+        #resultCard {
+            max-width: 600px; background: white; padding: 25px;
+            border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none; animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } }
+        
+        .pillar-badge { 
+            display: inline-block; padding: 5px 15px; border-radius: 20px; 
+            background: var(--secondary); color: white; font-size: 12px; margin-bottom: 10px;
+        }
+        button {
+            padding: 15px 40px; font-size: 18px; border: none;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white; border-radius: 30px; cursor: pointer; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🎡 FinWise Investor Behavior Wheel</h1>
+        <p>Identify your bias to unlock your F11 Portfolio</p>
+    </div>
+
+    <div class="wheel-container">
+        <div class="pointer"></div>
+        <div id="wheel"></div>
+    </div>
+
+    <button id="spinBtn">Identify My Bias</button>
+
+    <div id="resultCard">
+        <div id="pillar" class="pillar-badge"></div>
+        <h2 id="biasTitle"></h2>
+        <p id="biasDesc"></p>
+        <hr>
+        <h3>🎯 Recommended F11 Strategy</h3>
+        <p id="portfolioRec"></p>
+        <div id="stockSuggest" style="font-style: italic; color: #666; margin-top: 10px;"></div>
+    </div>
+
+    <script>
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spinBtn');
+        const resultCard = document.getElementById('resultCard');
+
+        const segments = [
+            { name: 'Mental Accounting', profile: 'Passive', pillar: 'MANAGE', tier: 'Foundation-Fortress', desc: 'You treat money differently based on its source. Focus on stability.' },
+            { name: 'Herd Behavior', profile: 'Moderate', pillar: 'EARN', tier: 'Growth-Legacy', desc: 'You follow market trends. We need to build your independent legacy.' },
+            { name: 'Emotional Gap', profile: 'Passive', pillar: 'MANAGE', tier: 'Foundation-Fortress', desc: 'Decisions made in stress. You need automated fortress assets.' },
+            { name: 'Anchoring', profile: 'Moderate', pillar: 'GROW', tier: 'Fertility', desc: 'Fixated on past prices. Focus on future growth potential.' },
+            { name: 'Self-Attribution', profile: 'Aggressive', pillar: 'EARN', tier: 'Impact Social ESG', desc: 'Overconfident in wins. Channel that energy into ESG Impact.' },
+            { name: 'Confirmation Bias', profile: 'Aggressive', pillar: 'GROW', tier: 'Impact Social ESG', desc: 'Seeking info that agrees with you. Diversify into social assets.' },
+            { name: 'Experiential Bias', profile: 'Moderate', pillar: 'GROW', tier: 'Growth-Legacy', desc: 'Past experiences haunt you. Rebuild with a balanced growth plan.' },
+            { name: 'Loss Aversion', profile: 'Passive', pillar: 'MANAGE', tier: 'Foundation-Fortress', desc: 'Fear of loss outweighs joy of gain. Stick to the Fortress tier.' },
+            { name: 'Familiarity Bias', profile: 'Passive', pillar: 'MANAGE', tier: 'Foundation-Fortress', desc: 'Investing only in what you know. Let us expand your fortress.' }
+        ];
+
+        let currentRotation = 0;
+
+        function spin() {
+            const randomExtra = Math.floor(Math.random() * 360) + 1800; 
+            currentRotation += randomExtra;
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                const actualDegree = currentRotation % 360;
+                // Wheel spins clockwise, pointer is at top (0deg). 
+                // We calculate which segment landed at the top.
+                const segmentIndex = Math.floor(((360 - actualDegree) % 360) / (360 / segments.length));
+                showResult(segments[segmentIndex]);
+            }, 4000);
+        }
+
+        function showResult(data) {
+            resultCard.style.display = 'block';
+            document.getElementById('biasTitle').innerText = data.name;
+            document.getElementById('biasDesc').innerText = data.desc;
+            document.getElementById('pillar').innerText = `FINWISE PILLAR: ${data.pillar}`;
+            document.getElementById('portfolioRec').innerText = `As a ${data.profile} investor, your F11 goals align with the ${data.tier} tier.`;
+            
+            // Link to the Stock Assistant logic
+            let suggestion = "Try searching for ";
+            suggestion += data.profile === 'Passive' ? "RELIANCE or TCS" : "ZOMATO or ADANIGREEN";
+            document.getElementById('stockSuggest').innerText = suggestion + " in your tracker.";
+        }
+
+        spinBtn.addEventListener('click', spin);
+    </script>
+</body>
+</html>
