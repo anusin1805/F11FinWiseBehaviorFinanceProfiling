@@ -160,7 +160,18 @@ async function saveBiasToFirebase(selectedBias) {
         alert(`Profile Updated: Your ${selectedBias} bias is now linked to your F11 Portfolio.`);
         // Redirect to Subscription or Stock page
     }
-}        
+}
+        function onWheelStop(result) {
+    // 1. Save to Firebase (for permanent storage)
+    saveToFirebase(result);
+
+    // 2. Shout to the Parent Dashboard (for immediate UI change)
+    window.parent.postMessage({
+        type: 'BIAS_DETECTED',
+        value: result
+    }, '*');
+}
+        
     </script>
 </body>
 </html>
