@@ -171,6 +171,7 @@ async function saveBiasToFirebase(selectedBias) {
         value: result
     }, '*');
 }
+        window.parent.postMessage({ type: 'BIAS_DETECTED', value: 'Loss Aversion' }, '*');
         
     </script>
 </body>
