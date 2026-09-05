@@ -137,7 +137,7 @@
                 const text = await response.text();
                 const rows = text.split(/\r?\n/).map(row => row.split(','));
 
-                const starData = rows.slice(5248, 5269).map(row => {
+                const starData = rows.slice(E5248, G5269).map(row => {
                     const clean = (idx) => row[idx] ? row[idx].replace(/"/g, '').trim() : "";
                     return {
                         metric: clean(4),
