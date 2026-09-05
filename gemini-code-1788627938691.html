@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinWise Investor Profiler</title>
+    <style>
+        :root {
+            --primary: #764ba2;
+            --secondary: #667eea;
+            --accent: #ff6b6b;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            display: flex; flex-direction: column; align-items: center; padding: 40px;
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        
+        /* THE WHEEL STYLING */
+        .wheel-container { position: relative; width: 400px; height: 400px; margin-bottom: 30px; }
+        #wheel {
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 8px solid #333; position: relative; overflow: hidden;
+            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+            background: conic-gradient(
+                #ffadad 0deg 40deg, #ffd6a5 40deg 80deg, #fdffb6 80deg 120deg,
+                #caffbf 120deg 160deg, #9bf6ff 160deg 200deg, #a0c4ff 200deg 240deg,
+                #bdb2ff 240deg 280deg, #ffc6ff 280deg 320deg, #fffffc 320deg 360deg
+            );
+        }
+        .pointer {
+            position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 20px solid transparent;
+            border-right: 20px solid transparent; border-top: 40px solid #333; z-index: 10;
+        }
+
+        /* RESULTS CARD */
+        #resultCard {
+            max-width: 600px; background: white; padding: 25px;
+            border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none; animation: slideUp 0.5s ease; width: 100%; text-align: center; margin-bottom: 20px;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } }
+        
+        .pillar-badge { 
+            display: inline-block; padding: 5px 15px; border-radius: 20px; 
+            background: var(--secondary); color: white; font-size: 12px; margin-bottom: 10px;
+        }
+        button {
+            padding: 15px 40px; font-size: 18px; border: none;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white; border-radius: 30px; cursor: pointer; font-weight: bold; margin-bottom: 20px;
+        }
+    </style>
+    <script type="module">
+        // 1. IMPORT
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 2. CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1hVvK7Yd3qB1Ud3mbIKd_edq4XmH-PVI",
+            authDomain: "brave-calling-398109.firebaseapp.com",
+            projectId: "brave-calling-398109",
+            storageBucket: "brave-calling-398109.firebasestorage.app",
+            messagingSenderId: "118774845365",
+            appId: "1:118774845365:web:99841a1b01f387a48ed3fc"
+        };
+
+        // 3. INITIALIZE
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 4. WHEEL LOGIC
+        const segments = [
+            { name: 'Mental Accounting', profile: 'Passive', pillar: 'MANAGE' },
+            { name: 'Herd Behavior', profile: 'Moderate', pillar: 'EARN' },
+            { name: 'Emotional Gap', profile: 'Passive', pillar: 'MANAGE' },
+            { name: 'Anchoring', profile: 'Moderate', pillar: 'GROW' },
+            { name: 'Self-Attribution', profile: 'Aggressive', pillar: 'EARN' },
+            { name: 'Confirmation Bias', profile: 'Aggressive', pillar: 'GROW' },
+            { name: 'Experiential Bias', profile: 'Moderate', pillar: 'GROW' },
+            { name: 'Loss Aversion', profile: 'Passive', pillar: 'MANAGE' },
+            { name: 'Familiarity Bias', profile: 'Passive', pillar: 'MANAGE' }
+        ];
+
+        let currentRotation = 0;
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spinBtn');
+
+        window.spin = function() {
+            const randomExtra = Math.floor(Math.random() * 360) + 1800; 
+            currentRotation += randomExtra;
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                const actualDegree = currentRotation % 360;
+                const segmentIndex = Math.floor(((360 - actualDegree) % 360) / 40);
+                const result = segments[segmentIndex];
+                
+                // Show Result Card visually
+                const card = document.getElementById('resultCard');
+                card.style.display = 'block';
+                document.getElementById('pillar').innerText = result.pillar;
+                document.getElementById('biasTitle').innerText = result.name;
+                document.getElementById('biasDesc').innerText = `Your profile is ${result.profile}. This influences how you ${result.pillar} wealth.`;
+                
+                handleBiasDetection(result.name);
+            }, 4000);
+        };
+
+        async function handleBiasDetection(biasName) {
+            window.parent.postMessage({ type: 'BIAS_DETECTED', value: biasName }, '*');
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    await setDoc(doc(db, "users", user.uid), { bias: biasName }, { merge: true });
+                    console.log("Saved successfully!");
+                } catch (e) { console.error("Firebase Error:", e); }
+            }
+        }
+
+        spinBtn.addEventListener('click', window.spin);
+
+        // 5. FETCH STAR TICKERS LOGIC
+        const SHEET_ID = "1W4G9JNnxBMCBOg5c42j1_8AthrTT9wfLIHGkYP5uqxs";
+        const GID = "0";
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+
+        async function fetchStarTickers() {
+            const tableBody = document.getElementById('starTickersBody');
+            try {
+                const response = await fetch(CSV_URL);
+                const text = await response.text();
+                const rows = text.split(/\r?\n/).map(row => row.split(','));
+
+                const starData = rows.slice(5248, 5269).map(row => {
+                    const clean = (idx) => row[idx] ? row[idx].replace(/"/g, '').trim() : "";
+                    return {
+                        metric: clean(4),
+                        ticker: clean(5),
+                        value: clean(6)
+                    };
+                }).filter(item => item.metric && item.ticker);
+
+                if (starData.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="3" style="padding: 12px; text-align: center;">No data found.</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = starData.map(item => `
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 10px; font-weight: 500;">${item.metric}</td>
+                        <td style="padding: 10px; font-weight: bold; color: #667eea;">${item.ticker}</td>
+                        <td style="padding: 10px; text-align: right; font-weight: 600;">${item.value}</td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error("Star Tickers Load Error:", error);
+                tableBody.innerHTML = '<tr><td colspan="3" style="color: red; padding: 12px;">Failed to load star tickers.</td></tr>';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", fetchStarTickers);
+    </script>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🎡 FinWise Investor Behavior Wheel</h1>
+        <p>Identify your bias to unlock your F11 Portfolio</p>
+    </div>
+
+    <!-- MAIN LAYOUT: Side-by-side or Stacked -->
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; max-width: 1200px; width: 100%;">
+        
+        <!-- LEFT PANEL: Star Tickers Table -->
+        <div class="star-tickers-card" style="background: #ffffff; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; height: fit-content;">
+            <h3 style="margin-top: 0; color: #2d3748; display: flex; align-items: center; gap: 8px;">
+                ⭐ Star Tickers of the Day
+            </h3>
+            <div style="overflow-x: auto; max-height: 450px;">
+                <table class="stock-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead style="position: sticky; top: 0; background: #f7fafc;">
+                        <tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">
+                            <th style="padding: 10px;">Metric</th>
+                            <th style="padding: 10px;">Star Ticker</th>
+                            <th style="padding: 10px; text-align: right;">Max Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="starTickersBody">
+                        <tr><td colspan="3" style="padding: 12px; text-align: center;">Loading Star Tickers...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Wheel & Results -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <div class="wheel-container">
+                <div class="pointer"></div>
+                <div id="wheel"></div>
+            </div>
+
+            <button id="spinBtn">Identify My Bias</button>
+
+            <div id="resultCard">
+                <div id="pillar" class="pillar-badge"></div>
+                <h2 id="biasTitle"></h2>
+                <p id="biasDesc"></p>
+                <hr>
+                <h3>🎯 Recommended F11 Strategy</h3>
+                <p id="portfolioRec">Tailoring portfolio based on behavior...</p>
+                <div id="stockSuggest" style="font-style: italic; color: #666; margin-top: 10px;"></div>
+            </div>
+        </div>
+        
+    </div>
+  
+</body>
+</html>
