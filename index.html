@@ -131,61 +131,61 @@
         const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
         async function fetchStarTickers() {
-        const tableBody = document.getElementById('starTickersBody');
-        try {
-            const response = await fetch(CSV_URL);
-            const text = await response.text();
-            
-            // Basic CSV split
-            const rows = text.split(/\r?\n/).map(row => row.split(','));
+    const tableBody = document.getElementById('starTickersBody');
+    try {
+        const response = await fetch(CSV_URL);
+        const text = await response.text();
+        const rows = text.split(/\r?\n/).map(row => row.split(','));
 
-            // 1. DYNAMICALLY FIND THE TABLE START
-            let startIndex = -1;
-            for (let i = 0; i < rows.length; i++) {
-                const colE = rows[i][4] ? rows[i][4].replace(/"/g, '').trim() : "";
-                // Look for the row where Column E is exactly "Open"
-                if (colE === "Open") {
+        let startIndex = -1;
+        let metricCol = -1;
+
+        // 1. SCAN DYNAMICALLY: Look for Open, Close, High stacked vertically anywhere in the grid
+        for (let i = 0; i < rows.length - 2; i++) {
+            for (let j = 0; j < rows[i].length; j++) {
+                const cell1 = rows[i][j] ? rows[i][j].replace(/"/g, '').trim() : "";
+                const cell2 = rows[i+1][j] ? rows[i+1][j].replace(/"/g, '').trim() : "";
+                const cell3 = rows[i+2][j] ? rows[i+2][j].replace(/"/g, '').trim() : "";
+                
+                if (cell1 === "Open" && cell2 === "Close" && cell3 === "High") {
                     startIndex = i;
+                    metricCol = j; // Captured exact column coordinate dynamically
                     break;
                 }
             }
-
-            // 2. ERROR HANDLING IF TABLE MOVES
-            if (startIndex === -1) {
-                tableBody.innerHTML = '<tr><td colspan="3" style="padding: 12px; text-align: center;">Could not locate table.</td></tr>';
-                return;
-            }
-
-            // 3. EXTRACT 21 ROWS FROM THE DYNAMIC START INDEX
-            // Column E = idx 4 (Metric), Column F = idx 5 (Ticker), Column G = idx 6 (Value)
-            const starData = rows.slice(startIndex, startIndex + 21).map(row => {
-                const clean = (idx) => row[idx] ? row[idx].replace(/"/g, '').trim() : "";
-                return {
-                    metric: clean(4),
-                    ticker: clean(5),
-                    value: clean(6)
-                };
-            }).filter(item => item.metric && item.ticker);
-
-            if (starData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="3" style="padding: 12px; text-align: center;">No data found.</td></tr>';
-                return;
-            }
-
-            // 4. RENDER HTML
-            tableBody.innerHTML = starData.map(item => `
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 10px; font-weight: 500;">${item.metric}</td>
-                    <td style="padding: 10px; font-weight: bold; color: #667eea;">${item.ticker}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 600;">${item.value}</td>
-                </tr>
-            `).join('');
-
-        } catch (error) {
-            console.error("Star Tickers Load Error:", error);
-            tableBody.innerHTML = '<tr><td colspan="3" style="color: red; padding: 12px;">Failed to load star tickers.</td></tr>';
+            if (startIndex !== -1) break;
         }
+
+        if (startIndex === -1) {
+            tableBody.innerHTML = '<tr><td colspan="3" style="padding: 12px; text-align: center;">Could not locate table.</td></tr>';
+            return;
+        }
+
+        // 2. EXTRACT 21 ROWS USING THE DYNAMIC COLUMN INDEX
+        const starData = rows.slice(startIndex, startIndex + 21).map(row => {
+            const clean = (idx) => row[idx] ? row[idx].replace(/"/g, '').trim() : "";
+            return {
+                metric: clean(metricCol),
+                ticker: clean(metricCol + 1),
+                value: clean(metricCol + 2)
+            };
+        }).filter(item => item.metric && item.ticker);
+
+        // 3. RENDER HTML
+        tableBody.innerHTML = starData.map(item => `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px; font-weight: 500;">${item.metric}</td>
+                <td style="padding: 10px; font-weight: bold; color: #667eea;">${item.ticker}</td>
+                <td style="padding: 10px; text-align: right; font-weight: 600;">${item.value}</td>
+            </tr>
+        `).join('');
+
+    } catch (error) {
+        console.error("Star Tickers Load Error:", error);
+        tableBody.innerHTML = '<tr><td colspan="3" style="color: red; padding: 12px;">Failed to load star tickers.</td></tr>';
     }
+}
+
         document.addEventListener("DOMContentLoaded", fetchStarTickers);
     </script>
 </head>
