@@ -130,7 +130,7 @@
         const GID = "0";
         const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
-            async function fetchStarTickers() {
+        async function fetchStarTickers() {
         const tableBody = document.getElementById('starTickersBody');
         try {
             const response = await fetch(CSV_URL);
@@ -186,7 +186,6 @@
             tableBody.innerHTML = '<tr><td colspan="3" style="color: red; padding: 12px;">Failed to load star tickers.</td></tr>';
         }
     }
-
         document.addEventListener("DOMContentLoaded", fetchStarTickers);
     </script>
 </head>
